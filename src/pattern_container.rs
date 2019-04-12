@@ -30,6 +30,24 @@ pub struct PatternContainer {
     pattern_box: gtk::Box,
 }
 
+impl PatternContainer {
+    fn add_new_pattern(&mut self) {
+        let widget = self.pattern_box.add_widget::<PatternController>((
+            self.model.current_controller_id,
+            self.model.relm.clone(),
+        ));
+        self.model
+            .patterns
+            .insert(self.model.current_controller_id, widget);
+        self.model.current_controller_id += 1;
+    }
+    fn delete_pattern(&mut self, id: usize) {
+        if let Some(pattern) = self.model.patterns.remove(&id) {
+            self.pattern_box.remove_widget(pattern);
+        }
+    }
+}
+
 impl Update for PatternContainer {
     type Model = PatternContainerModel;
     type ModelParam = ();
@@ -48,21 +66,8 @@ impl Update for PatternContainer {
 
     fn update(&mut self, event: Self::Msg) {
         match event {
-            AddPattern => {
-                let widget = self.pattern_box.add_widget::<PatternController>((
-                    self.model.current_controller_id,
-                    self.model.relm.clone(),
-                ));
-                self.model
-                    .patterns
-                    .insert(self.model.current_controller_id, widget);
-                self.model.current_controller_id += 1;
-            }
-            DeletePattern(id) => {
-                if let Some(pattern) = self.model.patterns.remove(&id) {
-                    self.pattern_box.remove_widget(pattern);
-                }
-            }
+            AddPattern => self.add_new_pattern(),
+            DeletePattern(id) => self.delete_pattern(id),
             _ => (),
         }
     }
@@ -77,8 +82,18 @@ impl Widget for PatternContainer {
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
         let root_box = gtk::Box::new(Orientation::Vertical, 0);
+        root_box.set_hexpand(true);
+        root_box.set_vexpand(true);
         let pattern_box = gtk::Box::new(Orientation::Vertical, 0);
+        pattern_box.set_spacing(10);
+        pattern_box.set_hexpand(true);
+        pattern_box.set_vexpand(true);
         let scroll_view = gtk::ScrolledWindow::new(None, None);
+        scroll_view.set_policy(gtk::PolicyType::Always, gtk::PolicyType::Always);
+        scroll_view.set_hexpand(true);
+        scroll_view.set_vexpand(true);
+        // scroll_view.set_hexpand(true);
+        // scroll_view.set_vexpand(true);
         let add_pattern_button = gtk::Button::new_with_label("Add new thing");
         connect!(
             relm,
