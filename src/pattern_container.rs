@@ -1,6 +1,6 @@
 use gtk::{
     BoxExt, ButtonExt, Cast, Container, ContainerExt, LabelExt, OrientableExt, Orientation,
-    WidgetExt,
+    ScrolledWindow, ScrolledWindowExt, WidgetExt,
 };
 use relm::{Component, ContainerWidget, Relm, Update, Widget};
 use std::collections::HashMap;
@@ -13,7 +13,8 @@ pub struct PatternContainerModel {
     dims: (f64, f64),
     pos: (f64, f64),
     relm: Relm<PatternContainer>,
-    cur_id: usize,
+    current_controller_id: usize,
+    id: usize,
 }
 
 #[derive(Msg)]
@@ -34,28 +35,34 @@ impl Update for PatternContainer {
     type ModelParam = ();
     type Msg = PatternContainerMsg;
 
-    fn model(relm: &Relm<Self>, _: ()) -> Self::Model {
+    fn model(relm: &Relm<Self>, param: Self::ModelParam) -> Self::Model {
         PatternContainerModel {
             patterns: HashMap::new(),
             dims: (0.0, 0.0),
             pos: (0.0, 0.0),
             relm: relm.clone(),
-            cur_id: 0,
+            current_controller_id: 0,
+            id: 0,
         }
     }
 
     fn update(&mut self, event: Self::Msg) {
         match event {
             AddPattern => {
-                let widget = self
-                    .pattern_box
-                    .add_widget::<PatternController>((self.model.cur_id, self.model.relm.clone()));
-                self.model.patterns.insert(self.model.cur_id, widget);
-                self.model.cur_id += 1;
+                let widget = self.pattern_box.add_widget::<PatternController>((
+                    self.model.current_controller_id,
+                    self.model.relm.clone(),
+                ));
+                self.model
+                    .patterns
+                    .insert(self.model.current_controller_id, widget);
+                self.model.current_controller_id += 1;
             }
-            DeletePattern(id) => if let Some(pattern) = self.model.patterns.remove(&id) {
-                self.pattern_box.remove_widget(pattern); 
-            },
+            DeletePattern(id) => {
+                if let Some(pattern) = self.model.patterns.remove(&id) {
+                    self.pattern_box.remove_widget(pattern);
+                }
+            }
             _ => (),
         }
     }
@@ -71,6 +78,7 @@ impl Widget for PatternContainer {
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
         let root_box = gtk::Box::new(Orientation::Vertical, 0);
         let pattern_box = gtk::Box::new(Orientation::Vertical, 0);
+        let scroll_view = gtk::ScrolledWindow::new(None, None);
         let add_pattern_button = gtk::Button::new_with_label("Add new thing");
         connect!(
             relm,
@@ -78,8 +86,9 @@ impl Widget for PatternContainer {
             connect_clicked(_),
             PatternContainerMsg::AddPattern
         );
+        scroll_view.add_with_viewport(&pattern_box);
         root_box.pack_start(&add_pattern_button, false, false, 0);
-        root_box.pack_start(&pattern_box, false, false, 0);
+        root_box.pack_start(&scroll_view, false, false, 0);
         root_box.show_all();
         PatternContainer {
             model,
