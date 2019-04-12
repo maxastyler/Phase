@@ -1,11 +1,8 @@
-#![feature(custom_attribute)]
 extern crate gtk;
 #[macro_use]
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
-
-extern crate relm_attributes;
 
 use relm_attributes::widget;
 
@@ -15,8 +12,10 @@ use gtk::{ButtonExt, LabelExt, OrientableExt, WidgetExt, SpinButtonExt};
 use relm::{Relm, Update, Widget};
 
 mod pattern_controller;
+mod pattern_container;
 
 use pattern_controller::*;
+use pattern_container::*;
 
 struct Model {}
 
@@ -26,24 +25,26 @@ pub enum Msg {
     Quit,
 }
 
-#[widget]
-impl Widget for Win {
-    fn model() -> () {
-        ()
-    }
+relm_widget! {
+	impl Widget for Win {
+		fn model() -> () {
+			()
+		}
 
-    fn update(&mut self, event: Msg) {
-        match event {
-            Msg::Quit => gtk::main_quit(),
-            _ => ()
-        }
-    }
+		fn update(&mut self, event: Msg) {
+			match event {
+				Msg::Quit => gtk::main_quit(),
+				_ => ()
+			}
+		}
 
-    view! {
-        gtk::Window {
-            delete_event(_, _) => (Msg::Quit, Inhibit(false)),
-        }
-    }
+		view! {
+			gtk::Window {
+				PatternContainer,
+				delete_event(_, _) => (Msg::Quit, Inhibit(false)),
+			}
+		}
+	}
 }
 
 fn main() {
