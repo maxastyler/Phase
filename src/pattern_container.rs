@@ -83,10 +83,10 @@ impl Widget for PatternContainer {
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
         let root_box = gtk::Box::new(Orientation::Vertical, 0);
         let pattern_box = gtk::Box::new(Orientation::Vertical, 0);
-        pattern_box.set_spacing(10);
         let scroll_view = gtk::ScrolledWindow::new(None, None);
-        scroll_view.set_policy(gtk::PolicyType::Always, gtk::PolicyType::Always);
         let add_pattern_button = gtk::Button::new_with_label("Add new thing");
+
+        pattern_box.set_spacing(10);
         connect!(
             relm,
             add_pattern_button,
