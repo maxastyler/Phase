@@ -1,7 +1,7 @@
 use self::PatternControllerMsg::*;
 use gtk::{
-    Adjustment, BoxExt, ButtonExt, GridExt, LabelExt, OrientableExt, Orientation, SpinButtonExt,
-    SpinButtonSignals, WidgetExt,
+    Adjustment, BoxExt, ButtonExt, EntryExt, GridExt, LabelExt, OrientableExt, Orientation,
+    SpinButtonExt, SpinButtonSignals, WidgetExt,
 };
 use relm::{Component, Relm, Update, Widget};
 
@@ -20,13 +20,13 @@ pub struct PatternControllerModel {
 
 #[derive(Msg)]
 pub enum PatternControllerMsg {
-    NewLValue,
-    NewAValue,
-    NewKxValue,
-    NewKyValue,
-    NewCxValue,
-    NewCyValue,
-    NewPhaseValue,
+    NewLValue(i32),
+    NewAValue(f64),
+    NewKxValue(f64),
+    NewKyValue(f64),
+    NewCxValue(f64),
+    NewCyValue(f64),
+    NewPhaseValue(f64),
     DeleteSelf,
 }
 
@@ -61,6 +61,13 @@ impl Update for PatternController {
                 .container_relm
                 .stream()
                 .emit(DeletePattern(self.model.id)),
+            NewLValue(x) => self.model.L = x,
+            NewAValue(x) => self.model.a = x,
+            NewKxValue(x) => self.model.k.0 = x,
+            NewKyValue(x) => self.model.k.1 = x,
+            NewCxValue(x) => self.model.c.0 = x,
+            NewCyValue(x) => self.model.c.1 = x,
+            NewPhaseValue(x) => self.model.phase = x,
             _ => (),
         }
     }
@@ -74,11 +81,68 @@ impl Widget for PatternController {
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
+        let spinner_char_width = 7;
         let root_widget = gtk::Box::new(Orientation::Horizontal, 0);
-        let button = gtk::Button::new_with_label("hi");
-        connect!(relm, button, connect_clicked(_), DeleteSelf);
+        let delete_button = gtk::Button::new_with_label("🗙");
+        connect!(relm, delete_button, connect_clicked(_), DeleteSelf);
+        let l_spin_adjustment = gtk::Adjustment::new(
+            0.0,
+            std::i32::MIN as f64,
+            std::i32::MAX as f64,
+            1.0,
+            0.0,
+            0.0,
+        );
+        let a_spin_adjustment =
+            gtk::Adjustment::new(0.0, std::f64::MIN, std::f64::MAX, 1.0, 0.0, 0.0);
+        let kx_spin_adjustment =
+            gtk::Adjustment::new(0.0, std::f64::MIN, std::f64::MAX, 1.0, 0.0, 0.0);
+        let ky_spin_adjustment =
+            gtk::Adjustment::new(0.0, std::f64::MIN, std::f64::MAX, 1.0, 0.0, 0.0);
+        let cx_spin_adjustment =
+            gtk::Adjustment::new(0.0, std::f64::MIN, std::f64::MAX, 1.0, 0.0, 0.0);
+        let cy_spin_adjustment =
+            gtk::Adjustment::new(0.0, std::f64::MIN, std::f64::MAX, 1.0, 0.0, 0.0);
+        let phase_spin_adjustment =
+            gtk::Adjustment::new(0.0, std::f64::MIN, std::f64::MAX, 1.0, 0.0, 0.0);
+        let l_label = gtk::Label::new("l");
+        let l_spinner = gtk::SpinButton::new(&l_spin_adjustment, 0.0, 0);
+        l_spinner.set_width_chars(spinner_char_width);
+        let a_label = gtk::Label::new("a");
+        let a_spinner = gtk::SpinButton::new(&a_spin_adjustment, 0.0, 3);
+        a_spinner.set_width_chars(spinner_char_width);
+        let k_label = gtk::Label::new("k(x, y)");
+        let kx_spinner = gtk::SpinButton::new(&kx_spin_adjustment, 0.0, 3);
+        kx_spinner.set_width_chars(spinner_char_width);
+        let ky_spinner = gtk::SpinButton::new(&ky_spin_adjustment, 0.0, 3);
+        ky_spinner.set_width_chars(spinner_char_width);
+        let c_label = gtk::Label::new("c(x, y)");
+        let cx_spinner = gtk::SpinButton::new(&cx_spin_adjustment, 0.0, 3);
+        cx_spinner.set_width_chars(spinner_char_width);
+        let cy_spinner = gtk::SpinButton::new(&cy_spin_adjustment, 0.0, 3);
+        cy_spinner.set_width_chars(spinner_char_width);
+        let phase_label = gtk::Label::new("φ");
+        let phase_spinner = gtk::SpinButton::new(&phase_spin_adjustment, 0.0, 3);
+        phase_spinner.set_width_chars(spinner_char_width);
 
-        root_widget.pack_start(&button, false, false, 0);
+
+
+        let grid_widget = gtk::Grid::new();
+        grid_widget.attach(&l_label, 0, 0, 1, 1);
+        grid_widget.attach(&l_spinner, 1, 0, 1, 1);
+        grid_widget.attach(&a_label, 0, 1, 1, 1);
+        grid_widget.attach(&a_spinner, 1, 1, 1, 1);
+        grid_widget.attach(&k_label, 2, 0, 1, 1);
+        grid_widget.attach(&kx_spinner, 3, 0, 1, 1);
+        grid_widget.attach(&ky_spinner, 4, 0, 1, 1);
+        grid_widget.attach(&c_label, 2, 1, 1, 1);
+        grid_widget.attach(&cx_spinner, 3, 1, 1, 1);
+        grid_widget.attach(&cy_spinner, 4, 1, 1, 1);
+        grid_widget.attach(&phase_label, 5, 0, 1, 1);
+        grid_widget.attach(&phase_spinner, 5, 1, 1, 1);
+
+        root_widget.pack_start(&grid_widget, false, false, 0);
+        root_widget.pack_start(&delete_button, false, false, 0);
         root_widget.show_all();
 
         PatternController {
