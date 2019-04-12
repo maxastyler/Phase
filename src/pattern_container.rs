@@ -82,18 +82,10 @@ impl Widget for PatternContainer {
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
         let root_box = gtk::Box::new(Orientation::Vertical, 0);
-        root_box.set_hexpand(true);
-        root_box.set_vexpand(true);
         let pattern_box = gtk::Box::new(Orientation::Vertical, 0);
         pattern_box.set_spacing(10);
-        pattern_box.set_hexpand(true);
-        pattern_box.set_vexpand(true);
         let scroll_view = gtk::ScrolledWindow::new(None, None);
         scroll_view.set_policy(gtk::PolicyType::Always, gtk::PolicyType::Always);
-        scroll_view.set_hexpand(true);
-        scroll_view.set_vexpand(true);
-        // scroll_view.set_hexpand(true);
-        // scroll_view.set_vexpand(true);
         let add_pattern_button = gtk::Button::new_with_label("Add new thing");
         connect!(
             relm,
@@ -103,7 +95,7 @@ impl Widget for PatternContainer {
         );
         scroll_view.add_with_viewport(&pattern_box);
         root_box.pack_start(&add_pattern_button, false, false, 0);
-        root_box.pack_start(&scroll_view, false, false, 0);
+        root_box.pack_start(&scroll_view, true, true, 0);
         root_box.show_all();
         PatternContainer {
             model,
