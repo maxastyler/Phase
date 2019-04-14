@@ -13,6 +13,7 @@ use relm::{Relm, Update, Widget};
 
 mod pattern_controller;
 mod pattern_container;
+mod gui;
 
 use pattern_controller::*;
 use pattern_container::*;

@@ -1,6 +1,6 @@
 use gtk::{
-    BoxExt, ButtonExt, Cast, Container, ContainerExt, GridExt, LabelExt, OrientableExt, SpinButtonExt, EntryExt,
-    Orientation, ScrolledWindow, ScrolledWindowExt, WidgetExt,
+    BoxExt, ButtonExt, Cast, Container, ContainerExt, EntryExt, GridExt, LabelExt, OrientableExt,
+    Orientation, ScrolledWindow, ScrolledWindowExt, SpinButtonExt, WidgetExt, SpinButtonSignals,
 };
 use relm::{Component, ContainerWidget, Relm, Update, Widget};
 use std::collections::HashMap;
@@ -22,13 +22,20 @@ pub struct PatternContainerModel {
 #[derive(Msg)]
 pub enum PatternContainerMsg {
     AddPattern,
+    NewCxValue(f64),
+    NewCyValue(f64),
+    NewScaleXValue(f64),
+    NewScaleYValue(f64),
+    NewTLXValue(f64),
+    NewTLYValue(f64),
+    NewBRXValue(f64),
+    NewBRYValue(f64),
     DeletePattern(usize),
 }
 
 pub struct PatternContainer {
     model: PatternContainerModel,
     root_box: gtk::Box,
-    add_pattern_button: gtk::Button,
     pattern_box: gtk::Box,
 }
 
@@ -72,6 +79,14 @@ impl Update for PatternContainer {
         match event {
             AddPattern => self.add_new_pattern(),
             DeletePattern(id) => self.delete_pattern(id),
+            NewCxValue(x) => self.model.pos.0 = x,
+            NewCyValue(x) => self.model.pos.1 = x,
+            NewScaleXValue(x) => self.model.scale.0 = x,
+            NewScaleYValue(x) => self.model.scale.1 = x,
+            NewTLXValue(x) => self.model.top_left.0 = x,
+            NewTLYValue(x) => self.model.top_left.1 = x,
+            NewBRXValue(x) => self.model.bottom_right.0 = x,
+            NewBRYValue(x) => self.model.bottom_right.1 = x,
             _ => (),
         }
     }
@@ -114,7 +129,7 @@ impl Widget for PatternContainer {
             0.0,
         );
         let bottom_right_x_spin_adjustment = gtk::Adjustment::new(
-            model.top_left.0,
+            model.bottom_right.0,
             std::f64::MIN,
             std::f64::MAX,
             1.0,
@@ -122,7 +137,7 @@ impl Widget for PatternContainer {
             0.0,
         );
         let bottom_right_y_spin_adjustment = gtk::Adjustment::new(
-            model.top_left.1,
+            model.bottom_right.1,
             std::f64::MIN,
             std::f64::MAX,
             1.0,
@@ -146,6 +161,7 @@ impl Widget for PatternContainer {
         let scale_label = gtk::Label::new("scale (x, y)");
         let top_left_label = gtk::Label::new("top left (x, y)");
         let bottom_right_label = gtk::Label::new("bottom right (x, y)");
+
         cx_spin.set_width_chars(spinner_char_width);
         cy_spin.set_width_chars(spinner_char_width);
         top_left_x_spin.set_width_chars(spinner_char_width);
@@ -162,6 +178,56 @@ impl Widget for PatternContainer {
             connect_clicked(_),
             PatternContainerMsg::AddPattern
         );
+
+        connect!(
+            relm,
+            cx_spin,
+            connect_value_changed(x),
+            NewCxValue(x.get_value())
+        );
+        connect!(
+            relm,
+            cy_spin,
+            connect_value_changed(x),
+            NewCyValue(x.get_value())
+        );
+        connect!(
+            relm,
+            scalex_spin,
+            connect_value_changed(x),
+            NewScaleXValue(x.get_value())
+        );
+        connect!(
+            relm,
+            scaley_spin,
+            connect_value_changed(x),
+            NewScaleYValue(x.get_value())
+        );
+        connect!(
+            relm,
+            top_left_x_spin,
+            connect_value_changed(x),
+            NewTLXValue(x.get_value())
+        );
+        connect!(
+            relm,
+            top_left_y_spin,
+            connect_value_changed(x),
+            NewTLYValue(x.get_value())
+        );
+        connect!(
+            relm,
+            bottom_right_x_spin,
+            connect_value_changed(x),
+            NewBRXValue(x.get_value())
+        );
+        connect!(
+            relm,
+            bottom_right_y_spin,
+            connect_value_changed(x),
+            NewBRYValue(x.get_value())
+        );
+
         view_control_grid.attach(&top_left_label, 0, 0, 1, 1);
         view_control_grid.attach(&top_left_x_spin, 1, 0, 1, 1);
         view_control_grid.attach(&top_left_y_spin, 2, 0, 1, 1);
@@ -184,7 +250,6 @@ impl Widget for PatternContainer {
         PatternContainer {
             model,
             root_box: root_box,
-            add_pattern_button: add_pattern_button,
             pattern_box: pattern_box,
         }
     }
