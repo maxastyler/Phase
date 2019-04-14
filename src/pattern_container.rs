@@ -6,6 +6,7 @@ use relm::{Component, ContainerWidget, Relm, Update, Widget};
 use std::collections::HashMap;
 
 use self::PatternContainerMsg::*;
+use crate::gui::{SLMController, SLMControllerMsg};
 use crate::pattern_controller::PatternController;
 
 pub struct PatternContainerModel {
@@ -15,6 +16,7 @@ pub struct PatternContainerModel {
     pos: (f64, f64),
     scale: (f64, f64),
     relm: Relm<PatternContainer>,
+    parent_relm: Relm<SLMController>,
     current_controller_id: usize,
     id: usize,
 }
@@ -59,7 +61,7 @@ impl PatternContainer {
 
 impl Update for PatternContainer {
     type Model = PatternContainerModel;
-    type ModelParam = ();
+    type ModelParam = (Relm<SLMController>, usize);
     type Msg = PatternContainerMsg;
 
     fn model(relm: &Relm<Self>, param: Self::ModelParam) -> Self::Model {
@@ -70,7 +72,8 @@ impl Update for PatternContainer {
             scale: (1.0, 1.0),
             pos: (0.0, 0.0),
             relm: relm.clone(),
-            current_controller_id: 0,
+            parent_relm: param.0,
+            current_controller_id: param.1,
             id: 0,
         }
     }
@@ -246,6 +249,7 @@ impl Widget for PatternContainer {
         scroll_view.add_with_viewport(&pattern_box);
         root_box.pack_start(&view_control_box, false, false, 10);
         root_box.pack_end(&scroll_view, true, true, 0);
+
         root_box.show_all();
         PatternContainer {
             model,
