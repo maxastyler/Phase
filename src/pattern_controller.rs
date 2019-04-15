@@ -201,43 +201,43 @@ impl Widget for PatternController {
             relm,
             l_spinner,
             connect_value_changed(x),
-            NewLValue(x.get_value_as_int())
+            UpdatePatternL(x.get_value_as_int())
         );
         connect!(
             relm,
             a_spinner,
             connect_value_changed(x),
-            NewAValue(x.get_value())
+            UpdatePatternA(x.get_value())
         );
         connect!(
             relm,
             kx_spinner,
             connect_value_changed(x),
-            NewKxValue(x.get_value())
+            UpdatePatternKx(x.get_value())
         );
         connect!(
             relm,
             ky_spinner,
             connect_value_changed(x),
-            NewKyValue(x.get_value())
+            UpdatePatternKy(x.get_value())
         );
         connect!(
             relm,
             cx_spinner,
             connect_value_changed(x),
-            NewCxValue(x.get_value())
+            UpdatePatternCx(x.get_value())
         );
         connect!(
             relm,
             cy_spinner,
             connect_value_changed(x),
-            NewCyValue(x.get_value())
+            UpdatePatternCy(x.get_value())
         );
         connect!(
             relm,
             phase_spinner,
             connect_value_changed(x),
-            NewPhaseValue(x.get_value())
+            UpdatePatternPhase(x.get_value())
         );
 
         root_widget.pack_start(&grid_widget, false, false, 0);

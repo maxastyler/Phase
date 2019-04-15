@@ -92,21 +92,66 @@ impl Update for PatternContainer {
         match event {
             AddPattern => self.add_new_pattern(),
             DeletePattern(id) => self.delete_pattern(id),
-            UpdatePatternL(id, x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdatePatternL(self.model.id, id, x)),
-            UpdatePatternA(id, x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdatePatternA(self.model.id, id, x)),
-            UpdatePatternKx(id, x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdatePatternKx(self.model.id, id, x)),
-            UpdatePatternKy(id, x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdatePatternKy(self.model.id, id, x)),
-            UpdatePatternCx(id, x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdatePatternCx(self.model.id, id, x)),
-            UpdatePatternCy(id, x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdatePatternCy(self.model.id, id, x)),
-            UpdatePatternPhase(id, x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdatePatternPhase(self.model.id, id, x)),
-            UpdateContainerCx(x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdateContainerCx(self.model.id, x)),
-            UpdateContainerCy(x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdateContainerCy(self.model.id, x)),
-            UpdateContainerScaleX(x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdateContainerScaleX(self.model.id, x)),
-            UpdateContainerScaleY(x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdateContainerScaleY(self.model.id, x)),
-            UpdateContainerTLX(x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdateContainerTLX(self.model.id, x)),
-            UpdateContainerTLY(x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdateContainerTLY(self.model.id, x)),
-            UpdateContainerBRX(x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdateContainerBRX(self.model.id, x)),
-            UpdateContainerBRY(x) => self.parent_relm.stream().emit(SLMControllerMsg::UpdateContainerBRY(self.model.id, x)),
+            UpdatePatternL(id, x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdatePatternL(self.model.id, id, x)),
+            UpdatePatternA(id, x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdatePatternA(self.model.id, id, x)),
+            UpdatePatternKx(id, x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdatePatternKx(self.model.id, id, x)),
+            UpdatePatternKy(id, x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdatePatternKy(self.model.id, id, x)),
+            UpdatePatternCx(id, x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdatePatternCx(self.model.id, id, x)),
+            UpdatePatternCy(id, x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdatePatternCy(self.model.id, id, x)),
+            UpdatePatternPhase(id, x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdatePatternPhase(self.model.id, id, x)),
+            UpdateContainerCx(x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdateContainerCx(self.model.id, x)),
+            UpdateContainerCy(x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdateContainerCy(self.model.id, x)),
+            UpdateContainerScaleX(x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdateContainerScaleX(self.model.id, x)),
+            UpdateContainerScaleY(x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdateContainerScaleY(self.model.id, x)),
+            UpdateContainerTLX(x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdateContainerTLX(self.model.id, x)),
+            UpdateContainerTLY(x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdateContainerTLY(self.model.id, x)),
+            UpdateContainerBRX(x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdateContainerBRX(self.model.id, x)),
+            UpdateContainerBRY(x) => self
+                .parent_relm
+                .stream()
+                .emit(SLMControllerMsg::UpdateContainerBRY(self.model.id, x)),
         }
     }
 }
@@ -215,60 +260,55 @@ impl Widget for PatternContainer {
         scaley_spin.set_width_chars(spinner_char_width);
 
         pattern_box.set_spacing(10);
-        connect!(
-            relm,
-            add_pattern_button,
-            connect_clicked(_),
-            PatternContainerMsg::AddPattern
-        );
+        connect!(relm, add_pattern_button, connect_clicked(_), AddPattern);
 
         connect!(
             relm,
             cx_spin,
             connect_value_changed(x),
-            NewCxValue(x.get_value())
+            UpdateContainerCx(x.get_value())
         );
         connect!(
             relm,
             cy_spin,
             connect_value_changed(x),
-            NewCyValue(x.get_value())
+            UpdateContainerCy(x.get_value())
         );
         connect!(
             relm,
             scalex_spin,
             connect_value_changed(x),
-            NewScaleXValue(x.get_value())
+            UpdateContainerScaleX(x.get_value())
         );
         connect!(
             relm,
             scaley_spin,
             connect_value_changed(x),
-            NewScaleYValue(x.get_value())
+            UpdateContainerScaleY(x.get_value())
         );
         connect!(
             relm,
             top_left_x_spin,
             connect_value_changed(x),
-            NewTLXValue(x.get_value())
+            UpdateContainerTLX(x.get_value())
         );
         connect!(
             relm,
             top_left_y_spin,
             connect_value_changed(x),
-            NewTLYValue(x.get_value())
+            UpdateContainerTLY(x.get_value())
         );
         connect!(
             relm,
             bottom_right_x_spin,
             connect_value_changed(x),
-            NewBRXValue(x.get_value())
+            UpdateContainerBRX(x.get_value())
         );
         connect!(
             relm,
             bottom_right_y_spin,
             connect_value_changed(x),
-            NewBRYValue(x.get_value())
+            UpdateContainerBRY(x.get_value())
         );
 
         view_control_grid.attach(&top_left_label, 0, 0, 1, 1);

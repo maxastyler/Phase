@@ -13,6 +13,35 @@ use self::SLMControllerMsg::*;
 use crate::pattern_container::PatternContainer;
 use crate::slm_data::*;
 
+macro_rules! update_from_pattern_spinner {
+    ($self:ident, $c_id:ident, $p_id:ident, $x:ident, $l:tt) => {
+        if let Some(container) = $self.model.pattern_data_containers.get_mut(&$c_id) {
+            if let Some(pattern) = container.patterns.get_mut(&$p_id) {
+                pattern.$l = $x;
+            }
+        };
+    };
+    ($self:ident, $c_id:ident, $p_id:ident, $x:ident, $l:tt, $n:tt) => {
+        if let Some(container) = $self.model.pattern_data_containers.get_mut(&$c_id) {
+            if let Some(pattern) = container.patterns.get_mut(&$p_id) {
+                pattern.$l.$n = $x;
+            }
+        };
+    };
+}
+macro_rules! update_from_container_spinner {
+    ($self:ident, $c_id:ident, $x:ident, $l:tt) => {
+        if let Some(container) = $self.model.pattern_data_containers.get_mut(&$c_id) {
+            container.$l = $x;
+        };
+    };
+    ($self:ident, $c_id:ident, $x:ident, $l:tt, $n:tt) => {
+        if let Some(container) = $self.model.pattern_data_containers.get_mut(&$c_id) {
+            container.$l.$n = $x;
+        };
+    };
+}
+
 /// The model for the SLM controller.
 pub struct SLMControllerModel {
     /// A vector of the pattern containers. For use in the gtk notebook
@@ -66,7 +95,8 @@ impl SLMController {
             self.relm.clone(),
             self.model.current_container_id,
         ));
-        self.pattern_containers.insert(self.model.current_container_id, widget);
+        self.pattern_containers
+            .insert(self.model.current_container_id, widget);
         self.model.current_container_id += 1;
     }
 
@@ -159,22 +189,44 @@ impl Update for SLMController {
             }
             RemoveAllTabs => self.remove_all_containers(),
             SaveContainers => self.extract_data_from_containers(),
-            UpdatePatternL(c_id, p_id, x) => self.model.pattern_data_containers.get_mut(&c_id).
-                and_then(|cont| cont.patterns.get_mut(&p_id).and_then(|control| control.l = x)).unwrap(),
-            UpdatePatternA(c_id, p_id, x) => (),
-            UpdatePatternKx(c_id, p_id, x) => (),
-            UpdatePatternKy(c_id, p_id, x) => (),
-            UpdatePatternCx(c_id, p_id, x) => (),
-            UpdatePatternCy(c_id, p_id, x) => (),
-            UpdatePatternPhase(c_id, p_id, x) => (),
-            UpdateContainerCx(c_id, x) => (),
-            UpdateContainerCy(c_id, x) => (),
-            UpdateContainerScaleX(c_id, x) => (),
-            UpdateContainerScaleY(c_id, x) => (),
-            UpdateContainerTLX(c_id, x) => (),
-            UpdateContainerTLY(c_id, x) => (),
-            UpdateContainerBRX(c_id, x) => (),
-            UpdateContainerBRY(c_id, x) => (),
+            LoadContainers => (),
+            UpdatePatternL(c_id, p_id, x) => update_from_pattern_spinner!(self, c_id, p_id, x, l),
+            UpdatePatternA(c_id, p_id, x) => update_from_pattern_spinner!(self, c_id, p_id, x, a),
+            UpdatePatternKx(c_id, p_id, x) => {
+                update_from_pattern_spinner!(self, c_id, p_id, x, k, 0)
+            }
+            UpdatePatternKy(c_id, p_id, x) => {
+                update_from_pattern_spinner!(self, c_id, p_id, x, k, 1)
+            }
+            UpdatePatternCx(c_id, p_id, x) => {
+                update_from_pattern_spinner!(self, c_id, p_id, x, c, 0)
+            }
+            UpdatePatternCy(c_id, p_id, x) => {
+                update_from_pattern_spinner!(self, c_id, p_id, x, c, 1)
+            }
+            UpdatePatternPhase(c_id, p_id, x) => {
+                update_from_pattern_spinner!(self, c_id, p_id, x, phase)
+            }
+            UpdateContainerCx(c_id, x) => update_from_container_spinner!(self, c_id, x, pos, 0),
+            UpdateContainerCy(c_id, x) => update_from_container_spinner!(self, c_id, x, pos, 1),
+            UpdateContainerScaleX(c_id, x) => {
+                update_from_container_spinner!(self, c_id, x, scale, 0)
+            }
+            UpdateContainerScaleY(c_id, x) => {
+                update_from_container_spinner!(self, c_id, x, scale, 1)
+            }
+            UpdateContainerTLX(c_id, x) => {
+                update_from_container_spinner!(self, c_id, x, top_left, 0)
+            }
+            UpdateContainerTLY(c_id, x) => {
+                update_from_container_spinner!(self, c_id, x, top_left, 1)
+            }
+            UpdateContainerBRX(c_id, x) => {
+                update_from_container_spinner!(self, c_id, x, bottom_right, 0)
+            }
+            UpdateContainerBRY(c_id, x) => {
+                update_from_container_spinner!(self, c_id, x, bottom_right, 1)
+            }
         }
     }
 }
