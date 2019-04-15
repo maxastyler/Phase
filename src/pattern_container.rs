@@ -1,14 +1,15 @@
 use gtk::{
-    BoxExt, ButtonExt, Cast, Container, ContainerExt, EntryExt, GridExt, LabelExt, OrientableExt,
-    Orientation, ScrolledWindow, ScrolledWindowExt, SpinButtonExt, WidgetExt, SpinButtonSignals,
+    BoxExt, ButtonExt, EntryExt, GridExt,
+    Orientation, ScrolledWindowExt, SpinButtonExt, WidgetExt, SpinButtonSignals,
 };
 use relm::{Component, ContainerWidget, Relm, Update, Widget};
 use std::collections::HashMap;
 
 use self::PatternContainerMsg::*;
-use crate::gui::{SLMController, SLMControllerMsg};
+use crate::gui::{SLMController};
 use crate::pattern_controller::PatternController;
 
+#[derive(Clone)]
 pub struct PatternContainerModel {
     patterns: HashMap<usize, Component<PatternController>>,
     top_left: (f64, f64),
@@ -35,6 +36,7 @@ pub enum PatternContainerMsg {
     DeletePattern(usize),
 }
 
+#[derive(Clone)]
 pub struct PatternContainer {
     model: PatternContainerModel,
     root_box: gtk::Box,

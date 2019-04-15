@@ -7,7 +7,7 @@ use self::SLMControllerMsg::*;
 use crate::pattern_container::PatternContainer;
 
 pub struct SLMControllerModel {
-    pattern_containers: HashMap<usize, Component<PatternContainer>>,
+    pattern_containers: HashMap<usize, (Component<PatternContainer>, gtk::Button)>,
     current_container_id: usize,
     relm: Relm<SLMController>,
 }
@@ -15,6 +15,7 @@ pub struct SLMControllerModel {
 #[derive(Msg)]
 pub enum SLMControllerMsg {
     AddTab,
+    RemoveTab(usize),
     Quit,
 }
 
@@ -31,14 +32,11 @@ impl SLMController {
             self.model.relm.clone(),
             self.model.current_container_id,
         ));
-        self.model.pattern_containers.insert(self.model.current_container_id, widget);
+        let close_button = gtk::Button::new_with_label("x");
+        connect!(self.model.relm, close_button, connect_clicked(_), RemoveTab(self.model.current_container_id.clone()));
+        self.container_notebook.set_tab_label(widget.widget(), Some(&close_button));
+        self.model.pattern_containers.insert(self.model.current_container_id, (widget, close_button));
         self.model.current_container_id += 1;
-    }
-
-    fn remove_container(&mut self, id: usize) {
-        if let Some(widget) = self.model.pattern_containers.remove(&id) {
-            self.container_notebook.remove(widget.widget());
-        };
     }
 }
 
@@ -59,6 +57,7 @@ impl Update for SLMController {
         match event {
             Quit => gtk::main_quit(),
             AddTab => self.add_new_container(),
+            // RemoveTab(w) => self.container_notebook.remove_widget(w),
             _ => (),
         }
     }
@@ -74,8 +73,11 @@ impl Widget for SLMController {
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
         let widget = gtk::Window::new(gtk::WindowType::Toplevel);
         let split_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        let container_control_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         let container_notebook = gtk::Notebook::new();
+        container_notebook.set_scrollable(true);
         let add_button = gtk::Button::new_with_label("Add container");
+        let delete_button = gtk::Button::new_with_label("Add container");
 
         connect!(
             relm,
