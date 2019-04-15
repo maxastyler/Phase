@@ -11,7 +11,7 @@ use std::fs::File;
 
 use self::SLMControllerMsg::*;
 
-use crate::pattern_container::PatternContainer;
+use crate::pattern_container::{PatternContainer, PatternContainerMsg};
 use crate::slm_data::*;
 
 macro_rules! update_from_pattern_spinner {
@@ -92,9 +92,15 @@ pub struct SLMController {
 
 impl SLMController {
     /// Add a new container into the notebook
-    pub fn add_new_container(&mut self) {
+    pub fn add_new_container(&mut self, container: PatternContainerData) {
+        self.add_new_container_no_increment(container);
+        self.model.current_container_id += 1;
+    }
+
+    pub fn add_new_container_no_increment(&mut self, mut container: PatternContainerData) {
+        container.patterns.clear();
         let widget = self.container_notebook.add_widget::<PatternContainer>((
-            PatternContainerData::default(),
+            container.clone(),
             self.relm.clone(),
             self.model.current_container_id,
         ));
@@ -102,9 +108,8 @@ impl SLMController {
             .insert(self.model.current_container_id, widget);
         self.model.pattern_data_containers.insert(
             self.model.current_container_id,
-            PatternContainerData::default(),
+            container,
         );
-        self.model.current_container_id += 1;
     }
 
     /// Remove the container at position ```id``` in the ```model.pattern_containers``` vector.
@@ -171,6 +176,39 @@ impl SLMController {
         }
         dialog.emit_close();
     }
+
+    pub fn load_containers(&mut self) {
+        use gtk::ResponseType;
+        let dialog = gtk::FileChooserDialog::with_buttons(
+            Some("Load containers"),
+            Some(&self.root()),
+            gtk::FileChooserAction::Open,
+            &[
+                ("_Cancel", ResponseType::Cancel),
+                ("_Save", ResponseType::Accept),
+            ],
+        );
+        if ResponseType::from(dialog.run()) == ResponseType::Accept {
+            if let Some(filename) = dialog.get_filename() {
+                if let Ok(file) = File::open(filename) {
+                    if let Ok(data) =
+                        serde_json::de::from_reader::<_, HashMap<usize, PatternContainerData>>(file)
+                    {
+                        for (_, container) in data.iter() {
+                            self.add_new_container_no_increment(container.clone());
+                            if let Some(comp) = self.pattern_containers.get(&self.model.current_container_id) {
+                                for (_, pattern) in container.patterns.iter() {
+                                    comp.stream().emit(PatternContainerMsg::AddPattern(pattern.clone()));
+                                }
+                            }
+                            self.model.current_container_id += 1;
+                        }
+                    }
+                }
+            }
+        }
+        dialog.emit_close();
+    }
 }
 
 impl Update for SLMController {
@@ -188,7 +226,7 @@ impl Update for SLMController {
     fn update(&mut self, event: Self::Msg) {
         match event {
             Quit => gtk::main_quit(),
-            AddTab => self.add_new_container(),
+            AddTab => self.add_new_container(PatternContainerData::default()),
             RemoveTab => {
                 let tab_id = self.container_notebook.get_property_page() as usize;
                 let mut ids = self
@@ -204,7 +242,7 @@ impl Update for SLMController {
             }
             RemoveAllTabs => self.remove_all_containers(),
             SaveContainers => self.save_containers(),
-            LoadContainers => (),
+            LoadContainers => self.load_containers(),
             RemoveController(c_id, p_id) => {
                 if let Some(container) = self.model.pattern_data_containers.get_mut(&c_id) {
                     container.patterns.remove(&p_id);
