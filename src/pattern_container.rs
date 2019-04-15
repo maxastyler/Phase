@@ -19,7 +19,6 @@ pub struct PatternContainerModel {
     relm: Relm<PatternContainer>,
     parent_relm: Relm<SLMController>,
     current_controller_id: usize,
-    id: usize,
 }
 
 #[derive(Msg)]
@@ -63,7 +62,7 @@ impl PatternContainer {
 
 impl Update for PatternContainer {
     type Model = PatternContainerModel;
-    type ModelParam = (Relm<SLMController>, usize);
+    type ModelParam = Relm<SLMController>;
     type Msg = PatternContainerMsg;
 
     fn model(relm: &Relm<Self>, param: Self::ModelParam) -> Self::Model {
@@ -74,9 +73,8 @@ impl Update for PatternContainer {
             scale: (1.0, 1.0),
             pos: (0.0, 0.0),
             relm: relm.clone(),
-            parent_relm: param.0,
-            current_controller_id: param.1,
-            id: 0,
+            parent_relm: param,
+            current_controller_id: 0,
         }
     }
 

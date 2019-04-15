@@ -1,21 +1,20 @@
 use gtk::{BoxExt, ButtonExt, ContainerExt, DialogExt, NotebookExt, WidgetExt};
 use relm::{Component, ContainerWidget, Relm, Update, Widget};
-use std::collections::HashMap;
 
 use self::SLMControllerMsg::*;
 
 use crate::pattern_container::PatternContainer;
 
+/// Hello there
 pub struct SLMControllerModel {
-    pattern_containers: HashMap<usize, Component<PatternContainer>>,
-    current_container_id: usize,
+    pattern_containers: Vec<Component<PatternContainer>>,
     relm: Relm<SLMController>,
 }
 
 #[derive(Msg)]
 pub enum SLMControllerMsg {
     AddTab,
-    RemoveTab(usize),
+    RemoveTab,
     RemoveAllTabs,
     Quit,
 }
@@ -28,26 +27,13 @@ pub struct SLMController {
 
 impl SLMController {
     fn add_new_container(&mut self) {
-        let widget = self.container_notebook.add_widget::<PatternContainer>((
+        let widget = self.container_notebook.add_widget::<PatternContainer>(
             self.model.relm.clone(),
-            self.model.current_container_id,
-        ));
-        let close_button = gtk::Button::new_with_label("x");
-        let id = self.model.current_container_id.clone();
-        connect!(
-            self.model.relm,
-            close_button,
-            connect_clicked(_),
-            RemoveTab(id)
         );
-
-        // self.container_notebook
-        //     .set_tab_label(widget.widget(), Some(&close_button));
-        self.container_notebook.set_tab_reorderable(widget.widget(), true);
+        let close_button = gtk::Button::new_with_label("x");
         self.model
             .pattern_containers
-            .insert(self.model.current_container_id, widget);
-        self.model.current_container_id += 1;
+            .push(widget);
     }
 
     fn remove_container(&mut self, id: usize) {
@@ -62,7 +48,8 @@ impl SLMController {
             ],
         );
         if dialog.run() == gtk::ResponseType::Accept.into() {
-            if let Some(widget) = self.model.pattern_containers.remove(&id) {
+            if id < self.model.pattern_containers.len() {
+                let widget = self.model.pattern_containers.remove(id);
                 self.container_notebook.remove(widget.widget());
             }
         }
@@ -81,7 +68,7 @@ impl SLMController {
             ],
         );
         if dialog.run() == gtk::ResponseType::Accept.into() {
-            for (_, widget) in self.model.pattern_containers.drain() {
+            for widget in self.model.pattern_containers.drain(0..) {
                 self.container_notebook.remove(widget.widget());
             }
         }
@@ -96,8 +83,7 @@ impl Update for SLMController {
 
     fn model(relm: &Relm<Self>, _: Self::ModelParam) -> Self::Model {
         SLMControllerModel {
-            pattern_containers: HashMap::new(),
-            current_container_id: 0,
+            pattern_containers: vec![],
             relm: relm.clone(),
         }
     }
@@ -106,7 +92,7 @@ impl Update for SLMController {
         match event {
             Quit => gtk::main_quit(),
             AddTab => self.add_new_container(),
-            RemoveTab(x) => self.remove_container(x),
+            RemoveTab => self.remove_container(self.container_notebook.get_property_page() as usize),
             RemoveAllTabs => self.remove_all_containers(),
         }
     }
@@ -126,7 +112,8 @@ impl Widget for SLMController {
         let container_notebook = gtk::Notebook::new();
         container_notebook.set_scrollable(true);
         let add_button = gtk::Button::new_with_label("Add container");
-        let delete_all_button = gtk::Button::new_with_label("Remove containers");
+        let delete_button = gtk::Button::new_with_label("Delete current container");
+        let delete_all_button = gtk::Button::new_with_label("Delete all containers");
         connect!(
             relm,
             widget,
@@ -134,12 +121,12 @@ impl Widget for SLMController {
             return (Quit, gtk::Inhibit(false))
         );
         connect!(relm, add_button, connect_clicked(_), AddTab);
+        connect!(relm, delete_button, connect_clicked(_), RemoveTab);
         connect!(relm, delete_all_button, connect_clicked(_), RemoveAllTabs);
 
-        // let a = widget.add_widget::<PatternContainer>((relm.clone()));
-
         container_control_box.pack_start(&add_button, false, false, 0);
-        container_control_box.pack_start(&delete_all_button, false, false, 0);
+        container_control_box.pack_end(&delete_all_button, false, false, 0);
+        container_control_box.pack_end(&delete_button, false, false, 0);
         split_box.pack_start(&container_control_box, false, false, 0);
         split_box.pack_start(&container_notebook, true, true, 0);
         widget.add(&split_box);
