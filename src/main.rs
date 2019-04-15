@@ -1,17 +1,22 @@
+//! This program uses a GUI to generate patterns for SLMs
+
 extern crate gtk;
 #[macro_use]
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
+extern crate serde;
+extern crate serde_json;
 
-mod pattern_controller;
-mod pattern_container;
-mod gui;
+pub mod gui;
+pub mod pattern_container;
+pub mod pattern_controller;
+pub mod slm_data;
 
 use relm::Widget;
 
 use gui::SLMController;
 
-fn main() {
-    SLMController::run(()).unwrap();
+fn main() -> Result<(), ()> {
+    Ok(SLMController::run(())?)
 }

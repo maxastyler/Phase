@@ -1,32 +1,30 @@
+//! This file contains structures which control an individual phase pattern
+
 use self::PatternControllerMsg::*;
 use gtk::{
-    Adjustment, BoxExt, ButtonExt, EntryExt, GridExt, LabelExt, OrientableExt, Orientation,
-    SpinButtonExt, SpinButtonSignals, WidgetExt,
+    BoxExt, ButtonExt, EntryExt, GridExt, Orientation, SpinButtonExt, SpinButtonSignals, WidgetExt,
 };
-use relm::{Component, Relm, Update, Widget};
+use relm::{Relm, Update, Widget};
 
 use crate::pattern_container::*;
+use crate::slm_data::*;
 
 #[derive(Clone)]
 pub struct PatternControllerModel {
-    L: i32,
-    a: f64,
-    k: (f64, f64),
-    c: (f64, f64),
-    phase: f64,
-    pub container_relm: Relm<PatternContainer>,
+    pattern_data: PatternData,
     id: usize,
+    pub parent_relm: Relm<PatternContainer>,
 }
 
 #[derive(Msg)]
 pub enum PatternControllerMsg {
-    NewLValue(i32),
-    NewAValue(f64),
-    NewKxValue(f64),
-    NewKyValue(f64),
-    NewCxValue(f64),
-    NewCyValue(f64),
-    NewPhaseValue(f64),
+    UpdatePatternL(i32),
+    UpdatePatternA(f64),
+    UpdatePatternKx(f64),
+    UpdatePatternKy(f64),
+    UpdatePatternCx(f64),
+    UpdatePatternCy(f64),
+    UpdatePatternPhase(f64),
     DeleteSelf,
 }
 
@@ -38,36 +36,60 @@ pub struct PatternController {
 
 impl Update for PatternController {
     type Model = PatternControllerModel;
-    type ModelParam = (usize, Relm<PatternContainer>);
+    type ModelParam = (PatternData, usize, Relm<PatternContainer>);
     type Msg = PatternControllerMsg;
 
     fn model(relm: &Relm<Self>, param: Self::ModelParam) -> Self::Model {
         PatternControllerModel {
-            L: 0,
-            a: 0.0,
-            k: (0.0, 0.0),
-            c: (0.0, 0.0),
-            phase: 0.0,
-            id: param.0,
-            container_relm: param.1,
+            pattern_data: param.0,
+            id: param.1,
+            parent_relm: param.2,
         }
     }
 
     fn update(&mut self, event: Self::Msg) {
-        use crate::pattern_container::PatternContainerMsg::DeletePattern;
+        use crate::pattern_container::PatternContainerMsg;
         match event {
             DeleteSelf => self
                 .model
-                .container_relm
+                .parent_relm
                 .stream()
-                .emit(DeletePattern(self.model.id)),
-            NewLValue(x) => self.model.L = x,
-            NewAValue(x) => self.model.a = x,
-            NewKxValue(x) => self.model.k.0 = x,
-            NewKyValue(x) => self.model.k.1 = x,
-            NewCxValue(x) => self.model.c.0 = x,
-            NewCyValue(x) => self.model.c.1 = x,
-            NewPhaseValue(x) => self.model.phase = x,
+                .emit(PatternContainerMsg::DeletePattern(self.model.id)),
+            UpdatePatternL(x) => self
+                .model
+                .parent_relm
+                .stream()
+                .emit(PatternContainerMsg::UpdatePatternL(self.model.id, x)),
+            UpdatePatternA(x) => self
+                .model
+                .parent_relm
+                .stream()
+                .emit(PatternContainerMsg::UpdatePatternA(self.model.id, x)),
+            UpdatePatternKx(x) => self
+                .model
+                .parent_relm
+                .stream()
+                .emit(PatternContainerMsg::UpdatePatternKx(self.model.id, x)),
+            UpdatePatternKy(x) => self
+                .model
+                .parent_relm
+                .stream()
+                .emit(PatternContainerMsg::UpdatePatternKy(self.model.id, x)),
+            UpdatePatternCx(x) => self
+                .model
+                .parent_relm
+                .stream()
+                .emit(PatternContainerMsg::UpdatePatternCx(self.model.id, x)),
+            UpdatePatternCy(x) => self
+                .model
+                .parent_relm
+                .stream()
+                .emit(PatternContainerMsg::UpdatePatternCy(self.model.id, x)),
+            UpdatePatternPhase(x) => self
+                .model
+                .parent_relm
+                .stream()
+                .emit(PatternContainerMsg::UpdatePatternPhase(self.model.id, x)),
             _ => (),
         }
     }
@@ -86,25 +108,61 @@ impl Widget for PatternController {
         let delete_button = gtk::Button::new_with_label("🗙");
         connect!(relm, delete_button, connect_clicked(_), DeleteSelf);
         let l_spin_adjustment = gtk::Adjustment::new(
-            0.0,
+            model.pattern_data.l as f64,
             std::i32::MIN as f64,
             std::i32::MAX as f64,
             1.0,
             0.0,
             0.0,
         );
-        let a_spin_adjustment =
-            gtk::Adjustment::new(0.0, std::f64::MIN, std::f64::MAX, 1.0, 0.0, 0.0);
-        let kx_spin_adjustment =
-            gtk::Adjustment::new(0.0, std::f64::MIN, std::f64::MAX, 1.0, 0.0, 0.0);
-        let ky_spin_adjustment =
-            gtk::Adjustment::new(0.0, std::f64::MIN, std::f64::MAX, 1.0, 0.0, 0.0);
-        let cx_spin_adjustment =
-            gtk::Adjustment::new(0.0, std::f64::MIN, std::f64::MAX, 1.0, 0.0, 0.0);
-        let cy_spin_adjustment =
-            gtk::Adjustment::new(0.0, std::f64::MIN, std::f64::MAX, 1.0, 0.0, 0.0);
-        let phase_spin_adjustment =
-            gtk::Adjustment::new(0.0, std::f64::MIN, std::f64::MAX, 1.0, 0.0, 0.0);
+        let a_spin_adjustment = gtk::Adjustment::new(
+            model.pattern_data.a,
+            std::f64::MIN,
+            std::f64::MAX,
+            1.0,
+            0.0,
+            0.0,
+        );
+        let kx_spin_adjustment = gtk::Adjustment::new(
+            model.pattern_data.k.0,
+            std::f64::MIN,
+            std::f64::MAX,
+            1.0,
+            0.0,
+            0.0,
+        );
+        let ky_spin_adjustment = gtk::Adjustment::new(
+            model.pattern_data.k.1,
+            std::f64::MIN,
+            std::f64::MAX,
+            1.0,
+            0.0,
+            0.0,
+        );
+        let cx_spin_adjustment = gtk::Adjustment::new(
+            model.pattern_data.c.0,
+            std::f64::MIN,
+            std::f64::MAX,
+            1.0,
+            0.0,
+            0.0,
+        );
+        let cy_spin_adjustment = gtk::Adjustment::new(
+            model.pattern_data.c.1,
+            std::f64::MIN,
+            std::f64::MAX,
+            1.0,
+            0.0,
+            0.0,
+        );
+        let phase_spin_adjustment = gtk::Adjustment::new(
+            model.pattern_data.phase,
+            std::f64::MIN,
+            std::f64::MAX,
+            1.0,
+            0.0,
+            0.0,
+        );
         let l_label = gtk::Label::new("l");
         let l_spinner = gtk::SpinButton::new(&l_spin_adjustment, 0.0, 0);
         l_spinner.set_width_chars(spinner_char_width);
@@ -183,7 +241,7 @@ impl Widget for PatternController {
         );
 
         root_widget.pack_start(&grid_widget, false, false, 0);
-        root_widget.pack_start(&delete_button, false, false, 0);
+        root_widget.pack_end(&delete_button, false, false, 0);
         root_widget.show_all();
 
         PatternController {
