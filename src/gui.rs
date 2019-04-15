@@ -7,6 +7,7 @@ use gtk::{
 use relm::{Component, ContainerWidget, Relm, Update, Widget};
 use std::collections::HashMap;
 use std::convert::*;
+use std::fs::File;
 
 use self::SLMControllerMsg::*;
 
@@ -58,6 +59,8 @@ pub enum SLMControllerMsg {
     SaveContainers,
     LoadContainers,
     Quit,
+    AddController(usize, usize, PatternData),
+    RemoveController(usize, usize),
     UpdatePatternL(usize, usize, i32),
     UpdatePatternA(usize, usize, f64),
     UpdatePatternKx(usize, usize, f64),
@@ -97,6 +100,10 @@ impl SLMController {
         ));
         self.pattern_containers
             .insert(self.model.current_container_id, widget);
+        self.model.pattern_data_containers.insert(
+            self.model.current_container_id,
+            PatternContainerData::default(),
+        );
         self.model.current_container_id += 1;
     }
 
@@ -157,14 +164,12 @@ impl SLMController {
         dialog.set_do_overwrite_confirmation(true);
         if ResponseType::from(dialog.run()) == ResponseType::Accept {
             if let Some(filename) = dialog.get_filename() {
-                println!("{:?}", filename);
+                if let Ok(file) = File::create(filename) {
+                    serde_json::ser::to_writer_pretty(file, &self.model.pattern_data_containers);
+                }
             }
         }
         dialog.emit_close();
-    }
-
-    pub fn extract_data_from_containers(&self) {
-        for i in self.model.pattern_data_containers.iter() {}
     }
 }
 
@@ -173,7 +178,7 @@ impl Update for SLMController {
     type ModelParam = ();
     type Msg = SLMControllerMsg;
 
-    fn model(relm: &Relm<Self>, _: Self::ModelParam) -> Self::Model {
+    fn model(_: &Relm<Self>, _: Self::ModelParam) -> Self::Model {
         SLMControllerModel {
             pattern_data_containers: HashMap::new(),
             current_container_id: 0,
@@ -185,11 +190,31 @@ impl Update for SLMController {
             Quit => gtk::main_quit(),
             AddTab => self.add_new_container(),
             RemoveTab => {
-                self.remove_container(self.container_notebook.get_property_page() as usize)
+                let tab_id = self.container_notebook.get_property_page() as usize;
+                let mut ids = self
+                    .model
+                    .pattern_data_containers
+                    .iter()
+                    .map(|(x, _)| x)
+                    .collect::<Vec<_>>();
+                ids.sort();
+                if tab_id < ids.len() {
+                    self.remove_container(*ids[tab_id]);
+                }
             }
             RemoveAllTabs => self.remove_all_containers(),
-            SaveContainers => self.extract_data_from_containers(),
+            SaveContainers => self.save_containers(),
             LoadContainers => (),
+            RemoveController(c_id, p_id) => {
+                if let Some(container) = self.model.pattern_data_containers.get_mut(&c_id) {
+                    container.patterns.remove(&p_id);
+                }
+            }
+            AddController(c_id, p_id, data) => {
+                if let Some(container) = self.model.pattern_data_containers.get_mut(&c_id) {
+                    container.patterns.insert(p_id, data);
+                }
+            }
             UpdatePatternL(c_id, p_id, x) => update_from_pattern_spinner!(self, c_id, p_id, x, l),
             UpdatePatternA(c_id, p_id, x) => update_from_pattern_spinner!(self, c_id, p_id, x, a),
             UpdatePatternKx(c_id, p_id, x) => {

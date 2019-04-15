@@ -7,7 +7,7 @@ use relm::{Component, ContainerWidget, Relm, Update, Widget};
 use std::collections::HashMap;
 
 use self::PatternContainerMsg::*;
-use crate::gui::SLMController;
+use crate::gui::{SLMController, SLMControllerMsg};
 use crate::pattern_controller::PatternController;
 use crate::slm_data::*;
 
@@ -23,7 +23,7 @@ pub struct PatternContainerModel {
 /// The messages that the container accepts
 #[derive(Msg)]
 pub enum PatternContainerMsg {
-    AddPattern,
+    AddPattern(PatternData),
     UpdatePatternL(usize, i32),
     UpdatePatternA(usize, f64),
     UpdatePatternKx(usize, f64),
@@ -54,14 +54,21 @@ pub struct PatternContainer {
 
 impl PatternContainer {
     /// Add a new pattern to this pattern container
-    pub fn add_new_pattern(&mut self) {
+    pub fn add_new_pattern(&mut self, pattern: PatternData) {
         let widget = self.pattern_box.add_widget::<PatternController>((
-            PatternData::default(),
+            pattern.clone(),
             self.model.current_controller_id,
             self.relm.clone(),
         ));
         self.patterns
             .insert(self.model.current_controller_id, widget);
+        self.parent_relm
+            .stream()
+            .emit(SLMControllerMsg::AddController(
+                self.model.id,
+                self.model.current_controller_id,
+                pattern,
+            ));
         self.model.current_controller_id += 1;
     }
 
@@ -70,6 +77,9 @@ impl PatternContainer {
         if let Some(pattern) = self.patterns.remove(&id) {
             self.pattern_box.remove_widget(pattern);
         }
+        self.parent_relm
+            .stream()
+            .emit(SLMControllerMsg::RemoveController(self.model.id, id));
     }
 }
 
@@ -78,7 +88,7 @@ impl Update for PatternContainer {
     type ModelParam = (PatternContainerData, Relm<SLMController>, usize);
     type Msg = PatternContainerMsg;
 
-    fn model(relm: &Relm<Self>, param: Self::ModelParam) -> Self::Model {
+    fn model(_: &Relm<Self>, param: Self::ModelParam) -> Self::Model {
         PatternContainerModel {
             patterns_data: param.0,
             parent_relm: param.1,
@@ -90,7 +100,7 @@ impl Update for PatternContainer {
     fn update(&mut self, event: Self::Msg) {
         use crate::gui::SLMControllerMsg;
         match event {
-            AddPattern => self.add_new_pattern(),
+            AddPattern(p) => self.add_new_pattern(p),
             DeletePattern(id) => self.delete_pattern(id),
             UpdatePatternL(id, x) => self
                 .parent_relm
@@ -260,7 +270,7 @@ impl Widget for PatternContainer {
         scaley_spin.set_width_chars(spinner_char_width);
 
         pattern_box.set_spacing(10);
-        connect!(relm, add_pattern_button, connect_clicked(_), AddPattern);
+        connect!(relm, add_pattern_button, connect_clicked(_), AddPattern(PatternData::default()));
 
         connect!(
             relm,
