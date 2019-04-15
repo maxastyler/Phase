@@ -106,10 +106,9 @@ impl SLMController {
         ));
         self.pattern_containers
             .insert(self.model.current_container_id, widget);
-        self.model.pattern_data_containers.insert(
-            self.model.current_container_id,
-            container,
-        );
+        self.model
+            .pattern_data_containers
+            .insert(self.model.current_container_id, container);
     }
 
     /// Remove the container at position ```id``` in the ```model.pattern_containers``` vector.
@@ -196,9 +195,13 @@ impl SLMController {
                     {
                         for (_, container) in data.iter() {
                             self.add_new_container_no_increment(container.clone());
-                            if let Some(comp) = self.pattern_containers.get(&self.model.current_container_id) {
+                            if let Some(comp) = self
+                                .pattern_containers
+                                .get(&self.model.current_container_id)
+                            {
                                 for (_, pattern) in container.patterns.iter() {
-                                    comp.stream().emit(PatternContainerMsg::AddPattern(pattern.clone()));
+                                    comp.stream()
+                                        .emit(PatternContainerMsg::AddPattern(pattern.clone()));
                                 }
                             }
                             self.model.current_container_id += 1;

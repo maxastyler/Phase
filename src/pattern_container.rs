@@ -270,7 +270,12 @@ impl Widget for PatternContainer {
         scaley_spin.set_width_chars(spinner_char_width);
 
         pattern_box.set_spacing(10);
-        connect!(relm, add_pattern_button, connect_clicked(_), AddPattern(PatternData::default()));
+        connect!(
+            relm,
+            add_pattern_button,
+            connect_clicked(_),
+            AddPattern(PatternData::default())
+        );
 
         connect!(
             relm,
