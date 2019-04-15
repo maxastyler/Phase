@@ -1,4 +1,4 @@
-use gtk::{BoxExt, ButtonExt, ContainerExt, NotebookExt, WidgetExt, DialogExt};
+use gtk::{BoxExt, ButtonExt, ContainerExt, DialogExt, NotebookExt, WidgetExt};
 use relm::{Component, ContainerWidget, Relm, Update, Widget};
 use std::collections::HashMap;
 
@@ -27,34 +27,59 @@ pub struct SLMController {
 }
 
 impl SLMController {
-
     fn add_new_container(&mut self) {
         let widget = self.container_notebook.add_widget::<PatternContainer>((
             self.model.relm.clone(),
             self.model.current_container_id,
         ));
         let close_button = gtk::Button::new_with_label("x");
-		let id = self.model.current_container_id.clone();
-        connect!(self.model.relm, close_button, connect_clicked(_), RemoveTab(id));
-        self.container_notebook.set_tab_label(widget.widget(), Some(&close_button));
-        self.model.pattern_containers.insert(self.model.current_container_id, widget);
+        let id = self.model.current_container_id.clone();
+        connect!(
+            self.model.relm,
+            close_button,
+            connect_clicked(_),
+            RemoveTab(id)
+        );
+
+        // self.container_notebook
+        //     .set_tab_label(widget.widget(), Some(&close_button));
+        self.container_notebook.set_tab_reorderable(widget.widget(), true);
+        self.model
+            .pattern_containers
+            .insert(self.model.current_container_id, widget);
         self.model.current_container_id += 1;
     }
 
-	fn remove_container(&mut self, id: usize) {
+    fn remove_container(&mut self, id: usize) {
         use gtk::DialogFlags;
-		let dialog = gtk::Dialog::new_with_buttons(Some("Really delete phase pattern?"), Some(&self.root()), DialogFlags::DESTROY_WITH_PARENT, &[("yes", gtk::ResponseType::Accept.into()), ("no", gtk::ResponseType::Reject.into())]);
+        let dialog = gtk::Dialog::new_with_buttons(
+            Some("Really delete phase pattern?"),
+            Some(&self.root()),
+            DialogFlags::DESTROY_WITH_PARENT,
+            &[
+                ("yes", gtk::ResponseType::Accept.into()),
+                ("no", gtk::ResponseType::Reject.into()),
+            ],
+        );
         if dialog.run() == gtk::ResponseType::Accept.into() {
             if let Some(widget) = self.model.pattern_containers.remove(&id) {
                 self.container_notebook.remove(widget.widget());
             }
         }
         dialog.emit_close();
-	}
+    }
 
     fn remove_all_containers(&mut self) {
         use gtk::DialogFlags;
-		let dialog = gtk::Dialog::new_with_buttons(Some("Delete all phase patterns?"), Some(&self.root()), DialogFlags::DESTROY_WITH_PARENT, &[("yes", gtk::ResponseType::Accept.into()), ("no", gtk::ResponseType::Reject.into())]);
+        let dialog = gtk::Dialog::new_with_buttons(
+            Some("Delete all phase patterns?"),
+            Some(&self.root()),
+            DialogFlags::DESTROY_WITH_PARENT,
+            &[
+                ("yes", gtk::ResponseType::Accept.into()),
+                ("no", gtk::ResponseType::Reject.into()),
+            ],
+        );
         if dialog.run() == gtk::ResponseType::Accept.into() {
             for (_, widget) in self.model.pattern_containers.drain() {
                 self.container_notebook.remove(widget.widget());
