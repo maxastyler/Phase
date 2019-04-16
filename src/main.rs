@@ -1,6 +1,8 @@
 //! This program uses a GUI to generate patterns for SLMs
 
 extern crate gtk;
+extern crate gdk;
+extern crate gdk_pixbuf;
 #[macro_use]
 extern crate relm;
 #[macro_use]

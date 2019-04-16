@@ -1,13 +1,15 @@
 //! This is the main window that the use interacts with to generate phase patterns
 
 use gtk::{
-    BoxExt, ButtonExt, ContainerExt, DialogExt, FileChooserExt, NotebookExt, ResponseType,
-    WidgetExt,
+    BoxExt, ButtonExt, ContainerExt, DialogExt, DrawingArea, FileChooserExt, NotebookExt,
+    ResponseType, WidgetExt,
 };
-use relm::{Component, ContainerWidget, Relm, Update, Widget};
+use gtk::prelude::*;
+use relm::{Component, ContainerWidget, Relm, Update, Widget, DrawHandler};
 use std::collections::HashMap;
 use std::convert::*;
 use std::fs::File;
+use std::path::PathBuf;
 
 use self::SLMControllerMsg::*;
 
@@ -48,6 +50,7 @@ pub struct SLMControllerModel {
     /// A vector of the pattern containers. For use in the gtk notebook
     pub pattern_data_containers: HashMap<usize, PatternContainerData>,
     current_container_id: usize,
+    image_buffer: gdk_pixbuf::Pixbuf,
 }
 
 /// The messages which the slm controller accepts
@@ -76,6 +79,7 @@ pub enum SLMControllerMsg {
     UpdateContainerTLY(usize, f64),
     UpdateContainerBRX(usize, f64),
     UpdateContainerBRY(usize, f64),
+    RenderPattern,
 }
 
 /// The relm slm controller struct
@@ -88,6 +92,7 @@ pub struct SLMController {
     /// reference to the relm
     pub relm: Relm<Self>,
     pub pattern_containers: HashMap<usize, Component<PatternContainer>>,
+    pub draw_handler: DrawHandler<gtk::DrawingArea>,
 }
 
 impl SLMController {
@@ -176,6 +181,28 @@ impl SLMController {
         dialog.emit_close();
     }
 
+    pub fn load_file<T: std::convert::AsRef<std::path::Path>>(&mut self, p: T) {
+        if let Ok(file) = File::open(p) {
+            if let Ok(data) =
+                serde_json::de::from_reader::<_, HashMap<usize, PatternContainerData>>(file)
+            {
+                for (_, container) in data.iter() {
+                    self.add_new_container_no_increment(container.clone());
+                    if let Some(comp) = self
+                        .pattern_containers
+                        .get(&self.model.current_container_id)
+                    {
+                        for (_, pattern) in container.patterns.iter() {
+                            comp.stream()
+                                .emit(PatternContainerMsg::AddPattern(pattern.clone()));
+                        }
+                    }
+                    self.model.current_container_id += 1;
+                }
+            }
+        }
+    }
+
     pub fn load_containers(&mut self) {
         use gtk::ResponseType;
         let dialog = gtk::FileChooserDialog::with_buttons(
@@ -189,28 +216,15 @@ impl SLMController {
         );
         if ResponseType::from(dialog.run()) == ResponseType::Accept {
             if let Some(filename) = dialog.get_filename() {
-                if let Ok(file) = File::open(filename) {
-                    if let Ok(data) =
-                        serde_json::de::from_reader::<_, HashMap<usize, PatternContainerData>>(file)
-                    {
-                        for (_, container) in data.iter() {
-                            self.add_new_container_no_increment(container.clone());
-                            if let Some(comp) = self
-                                .pattern_containers
-                                .get(&self.model.current_container_id)
-                            {
-                                for (_, pattern) in container.patterns.iter() {
-                                    comp.stream()
-                                        .emit(PatternContainerMsg::AddPattern(pattern.clone()));
-                                }
-                            }
-                            self.model.current_container_id += 1;
-                        }
-                    }
-                }
+                self.load_file(filename);
             }
         }
         dialog.emit_close();
+    }
+
+    pub fn draw_to_context(&mut self) {
+        // let context = self.draw_handler.get_context();
+        // context.set_source_pixbuf(self.model.image_buffer, 0f64, 0f64);
     }
 }
 
@@ -223,13 +237,19 @@ impl Update for SLMController {
         SLMControllerModel {
             pattern_data_containers: HashMap::new(),
             current_container_id: 0,
+            image_buffer: gdk_pixbuf::Pixbuf::new(gdk_pixbuf::Colorspace::Rgb, false, 8, 1920, 1080).unwrap(),
         }
     }
 
     fn update(&mut self, event: Self::Msg) {
         match event {
             Quit => gtk::main_quit(),
-            AddTab => self.add_new_container(PatternContainerData::default()),
+            AddTab => self.add_new_container(PatternContainerData {
+                top_left: (0.0, 0.0),
+                bottom_right: (1920.0, 1080.0),
+                scale: (1.0, 1.0),
+                ..Default::default()
+            }),
             RemoveTab => {
                 let tab_id = self.container_notebook.get_property_page() as usize;
                 let mut ids = self
@@ -293,6 +313,7 @@ impl Update for SLMController {
             UpdateContainerBRY(c_id, x) => {
                 update_from_container_spinner!(self, c_id, x, bottom_right, 1)
             }
+            RenderPattern => self.draw_to_context(),
         }
     }
 }
@@ -306,6 +327,10 @@ impl Widget for SLMController {
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
         let widget = gtk::Window::new(gtk::WindowType::Toplevel);
+        let image_control_split = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        let drawing_area = gtk::DrawingArea::new();
+        let mut draw_handler = DrawHandler::new().unwrap();
+        draw_handler.init(&drawing_area);
         let split_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
         let container_control_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         let container_notebook = gtk::Notebook::new();
@@ -315,6 +340,7 @@ impl Widget for SLMController {
         let load_button = gtk::Button::new_with_label("Load containers");
         let delete_button = gtk::Button::new_with_label("Delete current container");
         let delete_all_button = gtk::Button::new_with_label("Delete all containers");
+        let update_button = gtk::Button::new_with_label("Update pattern");
         connect!(
             relm,
             widget,
@@ -326,6 +352,7 @@ impl Widget for SLMController {
         connect!(relm, load_button, connect_clicked(_), LoadContainers);
         connect!(relm, delete_button, connect_clicked(_), RemoveTab);
         connect!(relm, delete_all_button, connect_clicked(_), RemoveAllTabs);
+        connect!(relm, update_button, connect_clicked(_), RenderPattern);
 
         container_control_box.pack_start(&add_button, false, false, 0);
         container_control_box.pack_start(&save_button, false, false, 0);
@@ -334,7 +361,10 @@ impl Widget for SLMController {
         container_control_box.pack_end(&delete_button, false, false, 0);
         split_box.pack_start(&container_control_box, false, false, 0);
         split_box.pack_start(&container_notebook, true, true, 0);
-        widget.add(&split_box);
+        split_box.pack_end(&update_button, false, false, 0);
+        image_control_split.pack_start(&drawing_area, true, true, 0);
+        image_control_split.pack_end(&split_box, true, true, 0);
+        widget.add(&image_control_split);
         widget.show_all();
 
         SLMController {
@@ -343,6 +373,7 @@ impl Widget for SLMController {
             container_notebook: container_notebook,
             relm: relm.clone(),
             pattern_containers: HashMap::new(),
+            draw_handler: draw_handler
         }
     }
 }

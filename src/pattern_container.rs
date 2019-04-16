@@ -1,6 +1,6 @@
 //! This module contains the definition of the container for a group of patterns
 use gtk::{
-    BoxExt, ButtonExt, EntryExt, GridExt, Orientation, ScrolledWindowExt, SpinButtonExt,
+    BoxExt, ButtonExt, EntryExt, GridExt, Orientation, ScrolledWindowExt, SpinButtonExt, ContainerExt, ViewportExt,
     SpinButtonSignals, WidgetExt,
 };
 use relm::{Component, ContainerWidget, Relm, Update, Widget};
@@ -177,7 +177,8 @@ impl Widget for PatternContainer {
         let spinner_char_width = 7;
         let root_box = gtk::Box::new(Orientation::Vertical, 0);
         let pattern_box = gtk::Box::new(Orientation::Vertical, 0);
-        let scroll_view = gtk::ScrolledWindow::new(None, None);
+        let scroll_view = gtk::ScrolledWindow::new::<gtk::Adjustment, _, gtk::Adjustment, _>(None, None);
+        let view_port = gtk::Viewport::new::<gtk::Adjustment, _, gtk::Adjustment, _>(None, None);
         let add_pattern_button = gtk::Button::new_with_label("Add pattern");
         let view_control_box = gtk::Box::new(Orientation::Horizontal, 0);
         let view_control_grid = gtk::Grid::new();
@@ -274,7 +275,7 @@ impl Widget for PatternContainer {
             relm,
             add_pattern_button,
             connect_clicked(_),
-            AddPattern(PatternData::default())
+            AddPattern(PatternData{..Default::default()})
         );
 
         connect!(
@@ -341,7 +342,8 @@ impl Widget for PatternContainer {
         view_control_box.pack_start(&view_control_grid, false, false, 0);
         view_control_box.pack_end(&add_pattern_button, false, false, 0);
 
-        scroll_view.add_with_viewport(&pattern_box);
+        view_port.add(&pattern_box);
+        scroll_view.add(&view_port);
         root_box.pack_start(&view_control_box, false, false, 10);
         root_box.pack_end(&scroll_view, true, true, 0);
 

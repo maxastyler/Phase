@@ -8,10 +8,12 @@ edition = "2018"
 default = ["relm/unstable", "relm-attributes/unstable", "relm-derive/unstable"]
 
 [dependencies]
-gtk = "^0.5.0"
-cairo-rs = "^0.5.0"
-relm = "^0.15.0"
-relm-derive = "^0.15.0"
-relm-attributes = "^0.15.0"
+gtk = "0.6.0"
+gdk-pixbuf = "0.6.0"
+gdk = "0.10.0"
+cairo-rs = "0.6"
+relm = "0.16.0"
+relm-derive = "0.16.0"
+relm-attributes = "0.16.0"
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
